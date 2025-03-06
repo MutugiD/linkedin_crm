@@ -1,34 +1,14 @@
-# Import all the models, so that Alembic can detect them
-# This file should be imported by alembic/env.py
+"""
+Base imports for database models.
 
-from app.db.base_class import Base  # noqa
+This module imports all models to ensure Alembic can detect them.
+"""
 
-# Import models
-from app.models.user import Role, User  # noqa
-from app.models.company import Company, CompanyLocation, Industry  # noqa
-from app.models.lead import (  # noqa
-    EducationExperience,
-    Interaction,
-    Lead,
-    LeadSkill,
-    PipelineStage,
-    WorkExperience,
-)
-from app.models.outreach import (  # noqa
-    EnrollmentStep,
-    MessageSequence,
-    MessageTemplate,
-    SequenceEnrollment,
-    SequenceStep,
-)
-from app.models.scraping import (  # noqa
-    ProxyServer,
-    ScrapeItemResult,
-    ScrapeJob,
-    UserAgentString,
-)
-from app.models.scoring import (  # noqa
-    IcpProfile,
-    ScoringCriteria,
-    ScoringHistory,
-)
+# Import all models here so Alembic can detect them
+from app.db.base_class import Base
+from app.models.user import User, Role
+from app.models.lead import Lead, PipelineStage, WorkExperience, EducationExperience, LeadSkill, Interaction
+from app.models.company import Company, Industry, CompanyLocation
+from app.models.outreach import MessageTemplate, MessageSequence, SequenceStep, SequenceEnrollment, EnrollmentStep
+from app.models.scraping import ScrapeJob, ProxyServer, UserAgentString, ScrapeItemResult
+from app.models.scoring import IcpProfile, ScoringCriteria, ScoringHistory

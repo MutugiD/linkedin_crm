@@ -1,90 +1,81 @@
-import os
-from typing import List, Optional, Union
+"""
+Configuration settings for the application.
 
-from pydantic import AnyHttpUrl, PostgresDsn, field_validator
-from pydantic_settings import BaseSettings
+This module uses Pydantic's BaseSettings for environment variable validation.
+"""
+
+import json
+import secrets
+from typing import Any, Dict, List, Optional, Union
+
+from pydantic import AnyHttpUrl, BaseSettings, EmailStr, PostgresDsn, validator
 
 
 class Settings(BaseSettings):
-    """
-    Application settings.
+    """Application settings loaded from environment variables."""
 
-    These settings are loaded from environment variables.
-    """
-
-    # API settings
-    API_V1_STR: str = "/api/v1"
     APP_ENV: str = "development"
-    DEBUG: bool = True
+    API_V1_PREFIX: str = "/api/v1"
+    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # 60 minutes * 24 hours = 1 day
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
+    # CORS origins
+    BACKEND_CORS_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:8000", "http://localhost:5173"]
 
-    # JWT Authentication
-    SECRET_KEY: str = os.getenv("SECRET_KEY", "your_secret_key_here")
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-
-    # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = []
-
-    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @validator("BACKEND_CORS_ORIGINS", pre=True)
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> Union[List[str], str]:
-        """
-        Parse CORS origins from environment variable.
-        """
+        """Parse CORS origins from string or list."""
         if isinstance(v, str) and not v.startswith("["):
             return [i.strip() for i in v.split(",")]
         elif isinstance(v, (list, str)):
             return v
         raise ValueError(v)
 
-    # Database
-    POSTGRES_SERVER: str = os.getenv("POSTGRES_SERVER", "localhost")
-    POSTGRES_USER: str = os.getenv("POSTGRES_USER", "postgres")
-    POSTGRES_PASSWORD: str = os.getenv("POSTGRES_PASSWORD", "password")
-    POSTGRES_DB: str = os.getenv("POSTGRES_DB", "linkedin_crm")
-    POSTGRES_PORT: str = os.getenv("POSTGRES_PORT", "5432")
-    DATABASE_URL: Optional[PostgresDsn] = None
+    # Database settings
+    POSTGRES_SERVER: str
+    POSTGRES_USER: str
+    POSTGRES_PASSWORD: str
+    POSTGRES_DB: str
+    POSTGRES_PORT: str = "5432"
+    DATABASE_URI: Optional[PostgresDsn] = None
 
-    @field_validator("DATABASE_URL", mode="before")
-    def assemble_db_connection(cls, v: Optional[str], values: dict) -> any:
-        """
-        Assemble database connection URL from environment variables.
-        """
+    @validator("DATABASE_URI", pre=True)
+    def assemble_db_connection(cls, v: Optional[str], values: Dict[str, Any]) -> Any:
+        """Construct PostgreSQL connection string."""
         if isinstance(v, str):
             return v
-
         return PostgresDsn.build(
             scheme="postgresql+asyncpg",
-            username=values.data.get("POSTGRES_USER"),
-            password=values.data.get("POSTGRES_PASSWORD"),
-            host=values.data.get("POSTGRES_SERVER"),
-            port=int(values.data.get("POSTGRES_PORT", 5432)),
-            path=f"{values.data.get('POSTGRES_DB') or ''}",
+            user=values.get("POSTGRES_USER"),
+            password=values.get("POSTGRES_PASSWORD"),
+            host=values.get("POSTGRES_SERVER"),
+            port=values.get("POSTGRES_PORT"),
+            path=f"/{values.get('POSTGRES_DB') or ''}",
         )
 
-    # LinkedIn scraping settings
-    LINKEDIN_BASE_URL: str = "https://www.linkedin.com"
-    USER_AGENT_ROTATION: bool = True
-    REQUEST_DELAY_MIN: int = 3
-    REQUEST_DELAY_MAX: int = 7
-    MAX_RETRIES: int = 3
-    SCRAPE_BATCH_SIZE: int = 10
-    LINKEDIN_RATE_LIMIT_PAUSE: int = 3600  # In seconds
+    # Project settings
+    PROJECT_NAME: str = "LinkedIn CRM"
 
-    # NLP configuration
-    SENTIMENT_THRESHOLD_POSITIVE: float = 0.3
-    SENTIMENT_THRESHOLD_NEGATIVE: float = -0.3
-    NLTK_DATA_PATH: str = "./nltk_data"
+    # LinkedIn settings
+    LINKEDIN_USERNAME: Optional[str] = None
+    LINKEDIN_PASSWORD: Optional[str] = None
+    LINKEDIN_LI_AT: Optional[str] = None
+    LINKEDIN_JSESSIONID: Optional[str] = None
 
-    # Frontend URL
-    FRONTEND_URL: str = "http://localhost:3000"
+    # Redis settings (for background tasks)
+    REDIS_HOST: str = "localhost"
+    REDIS_PORT: int = 6379
 
-    # Logging
+    # Log level
     LOG_LEVEL: str = "INFO"
-    LOG_FILE: str = "logs/app.log"
 
     class Config:
+        """Pydantic config for settings."""
+
         case_sensitive = True
         env_file = ".env"
+        env_file_encoding = "utf-8"
 
 
+# Create settings instance
 settings = Settings()

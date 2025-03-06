@@ -1,32 +1,44 @@
+"""
+Health check endpoints.
+"""
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 
 from app.db.session import get_db
 
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("/ping")
 async def health_check():
     """
-    Check API health.
+    Basic health check.
+
+    Returns:
+        dict: Health status
     """
-    return {"status": "healthy", "message": "API is running"}
+    return {"status": "ok", "message": "Service is running"}
 
 
 @router.get("/db")
 async def db_health_check(db: AsyncSession = Depends(get_db)):
     """
-    Check database connection health.
+    Database health check.
+
+    Args:
+        db: Database session
+
+    Returns:
+        dict: Database health status
     """
     try:
-        # Try a simple query
-        result = await db.execute("SELECT 1")
-        if result:
-            return {"status": "healthy", "message": "Database connection is working"}
-        return {"status": "unhealthy", "message": "Database query failed"}
+        # Execute a simple query to check database connection
+        result = await db.execute(text("SELECT 1"))
+        value = result.scalar()
+        if value == 1:
+            return {"status": "ok", "message": "Database connection successful"}
+        return {"status": "error", "message": "Database returned unexpected value"}
     except Exception as e:
-        return {
-            "status": "unhealthy",
-            "message": f"Database connection failed: {str(e)}",
-        }
+        return {"status": "error", "message": f"Database error: {str(e)}"}
