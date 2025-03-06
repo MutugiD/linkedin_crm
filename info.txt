@@ -1,0 +1,10 @@
+git rm --cached planning.md prompts.md
+git rm --cached info.txt
+python -m venv crm_env
+crm_env\Scripts\activate
+
+git add .
+git commit -m "backend api testing+documentation"
+git push -u origin crm_features
+
+git remote add origin https://github.com/MutugiD/linkedin_crm.git
